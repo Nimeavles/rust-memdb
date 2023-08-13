@@ -9,7 +9,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(host: &str, port: u32) -> Self {
+    pub fn new(host: &str, port: u16) -> Self {
         let address_to_connect = format!("{host}:{port}");
         Self {
             address: address_to_connect.clone(),
