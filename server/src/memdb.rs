@@ -41,3 +41,61 @@ impl MemDb {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::MemDb;
+
+    #[test]
+    fn test_set_query() {
+        let mut memdb = MemDb::new();
+
+        assert_eq!(
+            memdb.execute("set car ferrari"),
+            Ok("Ok: Query inserted successfully!".to_string())
+        );
+    }
+
+    #[test]
+    fn test_update_value_with_set_command() {
+        let mut memdb = MemDb::new();
+
+        memdb.execute("set car ferrari").unwrap();
+
+        assert_eq!(
+            memdb.execute("set car toyota"),
+            Ok("Updated value from ferrari to toyota".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_query() {
+        let mut memdb = MemDb::new();
+
+        assert_eq!(
+            memdb.execute("get car"),
+            Err("Error: car doesn't exist!".to_string())
+        );
+
+        memdb.execute("set car ferrari").unwrap();
+
+        assert_eq!(memdb.execute("get car"), Ok("ferrari".to_string()));
+    }
+
+    #[test]
+    fn test_del_query() {
+        let mut memdb = MemDb::new();
+
+        assert_eq!(
+            memdb.execute("del car"),
+            Err("Error: car doesn't exist!".to_string())
+        );
+
+        memdb.execute("set car ferrari").unwrap();
+
+        assert_eq!(
+            memdb.execute("del car"),
+            Ok("Ok: Query deleted successfully".to_string())
+        );
+    }
+}
