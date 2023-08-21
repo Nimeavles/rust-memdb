@@ -3,6 +3,8 @@ use std::{
     net::{TcpListener, TcpStream},
     str, thread,
 };
+
+use crate::MemDb;
 pub struct Server {
     listener: TcpListener,
     address: String,
@@ -28,8 +30,12 @@ impl Server {
     }
 
     fn handle_client(client: &mut TcpStream) {
-        println!("[*] New Connection From: {}", client.peer_addr().unwrap());
+        let client_address = client.peer_addr().unwrap();
+        println!("[*] New Connection From: {}", client_address);
+
         let mut bytes_from_client = [0u8; 1024];
+
+        let mut memdb = MemDb::new();
 
         while let Ok(bytes) = client.read(&mut bytes_from_client) {
             if bytes < 1 {
@@ -41,7 +47,9 @@ impl Server {
                 .unwrap()
                 .trim();
 
-            println!("{client_bytes_parsed}");
+            println!("{client_address} sent => {client_bytes_parsed}");
+
+            memdb.execute(client_bytes_parsed).unwrap();
         }
     }
 }
