@@ -30,8 +30,7 @@ impl Server {
     }
 
     fn handle_client(client: &mut TcpStream) {
-        let client_address = client.peer_addr().unwrap();
-        println!("[*] New Connection From: {}", client_address);
+        //let client_address = client.peer_addr().unwrap();
 
         let mut bytes_from_client = [0u8; 1024];
 
@@ -47,9 +46,16 @@ impl Server {
                 .unwrap()
                 .trim();
 
-            println!("{client_address} sent => {client_bytes_parsed}");
-
-            memdb.execute(client_bytes_parsed).unwrap();
+            match memdb.execute(client_bytes_parsed) {
+                Ok(success_exit) => {
+                    let bytes_to_write = success_exit.as_bytes();
+                    client.write(&bytes_to_write).unwrap();
+                }
+                Err(error_exit) => {
+                    let bytes_to_write = error_exit.as_bytes();
+                    client.write(&bytes_to_write).unwrap();
+                }
+            }
         }
     }
 }

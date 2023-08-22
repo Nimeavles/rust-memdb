@@ -1,10 +1,10 @@
 use crate::query::{Command, Query};
 
 // Returns the method of the query
-fn parse_query_method(query: &str) -> Result<String, &str> {
+fn parse_query_method(query: &str) -> Result<(String, usize), &str> {
     if query.starts_with('"') {
         return match query[1..].find("\"") {
-            Some(index) => Ok(String::from(&query[1..index + 1])),
+            Some(index) => Ok((String::from(&query[1..index]), query[1..index].len())),
             None => Err("Expected string termination"),
         };
     }
@@ -14,10 +14,10 @@ fn parse_query_method(query: &str) -> Result<String, &str> {
             if query[index..index + 1].eq("\"") {
                 Err("Unexpected string initializer")
             } else {
-                Ok(String::from(&query[0..index]))
+                Ok((String::from(&query[0..index]), query[0..index].len()))
             }
         }
-        None => Ok(String::from(query)),
+        None => Ok((String::from(query), query.len())),
     }
 }
 
@@ -40,16 +40,27 @@ fn parse_key_only(query_struct: &Query) -> Result<Command, String> {
 }
 
 pub fn parse(query: &str) -> Result<Command, String> {
-    let mut query_struct = Query::new();
-    query_struct.command = parse_query_method(query)?;
-
-    // Remove the method and the following ws
-    if query.len() < 4 {
-        return Err("Invalid query!".to_string());
+    if query.is_empty() {
+        return Err(String::from("Empty query!"));
     }
 
-    let new_query = &query[4..];
-    split_throught_ws(new_query, &mut query_struct);
+    let mut query_struct = Query::new();
+
+    match parse_query_method(query) {
+        Ok((command, len)) => {
+            query_struct.command = command;
+
+            // Remove the method and the following ws
+            if query.len() < len {
+                return Err("Invalid query!".to_string());
+            }
+
+            let new_query = &query[len + 1..];
+            split_throught_ws(new_query, &mut query_struct);
+        }
+
+        Err(err) => return Err(err.to_string()),
+    };
 
     match query_struct.value {
         Some(value) => {
@@ -115,4 +126,12 @@ mod test {
         parse("del car ferrari").unwrap();
     }
 
+    #[test]
+    #[should_panic]
+    fn parse_invalid_query() {
+        std::panic::set_hook(Box::new(|_info| {
+            // In order to not to show any panic info
+        }));
+        parse("invalid_query rust").unwrap();
+    }
 }

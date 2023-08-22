@@ -14,30 +14,37 @@ impl MemDb {
     }
 
     pub fn execute(&mut self, query: &str) -> Result<String, String> {
-        match query.parse().unwrap() {
-            Command::Set(key, value) => {
-                return match self.hash_map.insert(key.to_owned(), value.to_owned()) {
-                    Some(old_value) => Ok(format!("Updated value from {old_value} to {value}")),
-                    None => Ok(String::from("Ok: Query inserted successfully!")),
-                }
-            }
-            Command::Get(key) => {
-                if let Some(value) = self.hash_map.get(key.as_str()) {
-                    return Ok(value.to_string());
-                }
+        match query.parse() {
+            Ok(command) => {
+                return match command {
+                    Command::Set(key, value) => {
+                        return match self.hash_map.insert(key.to_owned(), value.to_owned()) {
+                            Some(old_value) => {
+                                Ok(format!("Ok: Updated value from {old_value} to {value}\n"))
+                            }
+                            None => Ok(String::from("Ok: Query inserted successfully!\n")),
+                        }
+                    }
+                    Command::Get(key) => {
+                        if let Some(value) = self.hash_map.get(key.as_str()) {
+                            return Ok(format!("Ok: {value}\n"));
+                        }
 
-                Err(String::from(format!("Error: {key} doesn't exist!")))
-            }
-            Command::Del(key) => {
-                if let Some(_) = self.hash_map.get(&key) {
-                    self.hash_map
-                        .remove(&key)
-                        .expect("Error: Fatal Error deleting the key");
-                    return Ok(String::from("Ok: Query deleted successfully"));
-                }
+                        Err(String::from(format!("Error: {key} doesn't exist!\n")))
+                    }
+                    Command::Del(key) => {
+                        if let Some(_) = self.hash_map.get(&key) {
+                            self.hash_map
+                                .remove(&key)
+                                .expect("Error: Fatal Error deleting the key");
+                            return Ok(String::from("Ok: Query deleted successfully\n"));
+                        }
 
-                Err(String::from(format!("Error: {key} doesn't exist!")))
+                        Err(String::from(format!("Error: {key} doesn't exist!\n")))
+                    }
+                }
             }
+            Err(error) => Err(format!("Error: {error}\n")),
         }
     }
 }
@@ -52,7 +59,7 @@ mod test {
 
         assert_eq!(
             memdb.execute("set car ferrari"),
-            Ok("Ok: Query inserted successfully!".to_string())
+            Ok("Ok: Query inserted successfully!\n".to_string())
         );
     }
 
@@ -64,7 +71,7 @@ mod test {
 
         assert_eq!(
             memdb.execute("set car toyota"),
-            Ok("Updated value from ferrari to toyota".to_string())
+            Ok("Ok: Updated value from ferrari to toyota\n".to_string())
         );
     }
 
@@ -74,12 +81,12 @@ mod test {
 
         assert_eq!(
             memdb.execute("get car"),
-            Err("Error: car doesn't exist!".to_string())
+            Err("Error: car doesn't exist!\n".to_string())
         );
 
         memdb.execute("set car ferrari").unwrap();
 
-        assert_eq!(memdb.execute("get car"), Ok("ferrari".to_string()));
+        assert_eq!(memdb.execute("get car"), Ok("Ok: ferrari\n".to_string()));
     }
 
     #[test]
@@ -88,14 +95,24 @@ mod test {
 
         assert_eq!(
             memdb.execute("del car"),
-            Err("Error: car doesn't exist!".to_string())
+            Err("Error: car doesn't exist!\n".to_string())
         );
 
         memdb.execute("set car ferrari").unwrap();
 
         assert_eq!(
             memdb.execute("del car"),
-            Ok("Ok: Query deleted successfully".to_string())
+            Ok("Ok: Query deleted successfully\n".to_string())
         );
+    }
+
+    #[test]
+    fn test_failure_query() {
+        let mut memdb = MemDb::new();
+
+        assert_eq!(
+            memdb.execute("invalid_method rust"),
+            Err("Error: Unexpected method invalid_method!\n".to_string())
+        )
     }
 }
